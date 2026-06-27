@@ -8,25 +8,166 @@ metadata:
     requires:
       bins: ["node"]
       env: []
+triggers:
+  - 晨报
+  - 晚报
+  - 周报
+  - 今日待办
+  - 任务汇报
+  - 查看任务
+  - 任务日程
+  - daily briefing
+  - morning report
+  - evening report
+  - weekly report
 ---
 
 # Daily Briefing Skill
 
 定时汇报每日/每周任务日程。通过 `dida` CLI（@suibiji/dida-cli）直连滴答清单 API，获取实时任务数据。
 
+---
+
 ## 前置条件
 
-- 已安装 `@suibiji/dida-cli`（`npm i -g @suibiji/dida-cli`）
-- 已执行 `dida auth login` 完成 OAuth 授权
+| 序号 | 项目 | 要求 | 检查方式 |
+|------|------|------|----------|
+| 1 | OpenClaw | >= v2026.6.0 | `openclaw --version` |
+| 2 | Node.js | >= 18 | `node --version` |
+| 3 | dida CLI | @suibiji/dida-cli 已安装 | `dida --version` |
+| 4 | OAuth 授权 | 已执行登录 | `dida auth login` |
+| 5 | 推送渠道 | Telegram / 其他渠道已配置 | 确认 DELIVERY_TO 等变量 |
+
+---
 
 ## 数据源
 
-| 命令 | 用途 |
-|------|------|
-| `dida task filter --status 0 --json` | 获取所有未完成任务（JSON） |
-| `dida task completed` | 获取已完成任务 |
+| 序号 | 命令 | 用途 |
+|------|------|------|
+| 1 | `dida task filter --status 0 --json` | 获取所有未完成任务（JSON） |
+| 2 | `dida task completed` | 获取已完成任务 |
 
-## 快速部署
+---
+
+## 输出格式规范
+
+### 晨报输出
+
+```
+☀️ 晨报｜6月28日 周六
+
+🔴 逾期
+  • [高] 提交季度报告（原截止 6/25）
+
+🟡 今日
+  • [中] 14:00 产品评审会
+  • [低] 整理本周笔记
+
+🟢 近期
+  • [中] 周五前完成设计稿
+
+📋 无截止日期
+  • 学习 Rust 基础语法
+```
+
+### 晚报输出
+
+```
+🌃 晚报｜6月28日 周六
+
+✅ 今日已完成
+  • [中] 完成 API 接口文档
+  • [低] 回复客户邮件
+
+⏳ 今日未完成
+  • [高] 提交季度报告（已逾期）
+  • [中] 14:00 产品评审会（已取消）
+```
+
+### 周报输出
+
+```
+📊 周报｜6月23日 - 6月29日
+
+✅ 本周完成
+  • [高] 完成用户系统重构
+  • [中] 修复 3 个线上 Bug
+  • [低] 整理技术文档
+
+⏳ 未完成/待跟进
+  • [高] 支付模块开发（进度 60%）
+  • [中] 性能优化方案（待评审）
+```
+
+状态标记说明：
+- 🔴 逾期 — 超过截止日期
+- 🟡 今日 — 今天截止
+- 🟢 近期 — 未来 7 天内
+- 📋 无截止日期 — 未设定截止时间
+- ✅ 已完成 — 本周完成
+- ⏳ 未完成 — 需跟进
+
+---
+
+## 快速开始
+
+```bash
+# 1. 安装 dida CLI
+npm i -g @suibiji/dida-cli
+
+# 2. 登录授权
+dida auth login
+
+# 3. 测试获取任务
+dida task filter --status 0 --json
+
+# 4. 安装技能到本地
+openclaw skills install openclaw-daily-briefing
+
+# 5. 配置推送渠道并创建 cron 任务（见下方部署引导）
+```
+
+---
+
+## 安装与部署
+
+### 方式 A：从 ClawHub 安装（推荐）
+
+```bash
+# 搜索技能
+openclaw skills search openclaw-daily-briefing
+
+# 安装
+openclaw skills install openclaw-daily-briefing
+
+# 验证
+openclaw skills list | grep daily-briefing
+```
+
+### 方式 B：本地部署
+
+```bash
+# 1. 创建技能目录
+mkdir -p ~/.openclaw/workspace/skills/openclaw-daily-briefing
+
+# 2. 将 SKILL.md 放入目录
+cp SKILL.md ~/.openclaw/workspace/skills/openclaw-daily-briefing/
+
+# 3. 验证安装
+openclaw skills list | grep daily-briefing
+```
+
+### 安装后验证
+
+| 检查项 | 命令 | 预期结果 |
+|--------|------|----------|
+| 技能状态 | `openclaw skills list` | `✓ ready │ 📅 openclaw-daily-briefing` |
+| dida 登录 | `dida auth status` | 已授权 |
+| 数据获取 | `dida task filter --status 0 --json` | 返回任务 JSON |
+
+---
+
+## 快速部署：创建 Cron 任务
 
 ### 确认推送配置
 
@@ -95,6 +236,18 @@ metadata:
 
 ---
 
+## 常见用例
+
+| 序号 | 场景 | 触发方式 | 说明 |
+|------|------|---------|------|
+| 1 | 查看今日待办 | "今日待办" / "今天有什么任务" | 实时获取未完成任务 |
+| 2 | 手动触发晨报 | "晨报" / "今日任务汇报" | 按晨报格式输出 |
+| 3 | 查看已完成 | "今天完成了什么" | 筛选今日已完成任务 |
+| 4 | 查看本周进度 | "本周任务汇报" | 按周报格式汇总 |
+| 5 | 自动推送 | cron 定时任务 | 晨报/晚报/周报自动推送 |
+
+---
+
 ## 自定义
 
 ### 修改时间
@@ -111,6 +264,23 @@ metadata:
 ### 禁用某个汇报
 
 将 `"enabled": false` 即可暂停，无需删除。
+
+---
+
+## 更新与卸载
+
+```bash
+# 从 ClawHub 更新
+openclaw skills update openclaw-daily-briefing
+
+# 从 ClawHub 卸载
+openclaw skills uninstall openclaw-daily-briefing
+
+# 或手动删除目录
+rm -rf ~/.openclaw/workspace/skills/openclaw-daily-briefing
+```
+
+---
 
 ## 注意事项
 
